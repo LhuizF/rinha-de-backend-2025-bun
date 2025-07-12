@@ -30,6 +30,10 @@ services:
       - POSTGRES_DB=rinha-de-backend
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
   load-balancer:
     image: nginx:1.25.2-alpine
