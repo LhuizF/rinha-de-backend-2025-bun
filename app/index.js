@@ -82,6 +82,16 @@ app.get('/payments-summary', async (req, res) => {
   }
 });
 
+app.post('/purge-payments', async (req, res) => {
+  try {
+    await database.query('DELETE FROM processed_payments;');
+    res.status(200).json({ status: 'ok' });
+  } catch (error) {
+
+    res.status(500).json({ error: 'Failed to purge payments.' });
+  }
+});
+
 const PORT = process.env.PORT || 3333;
 
 app.listen(PORT, () => {
