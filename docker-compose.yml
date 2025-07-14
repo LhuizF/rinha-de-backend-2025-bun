@@ -1,5 +1,5 @@
 services:
-  api1:
+  api1: &api
     build: ./app
     hostname: api1
     environment:
@@ -12,20 +12,15 @@ services:
       - payment-processor
     depends_on:
       - db
+    deploy:
+      resources:
+        limits:
+          cpus: "0.55"
+          memory: "40MB"
 
   api2:
-    build: ./app
+    <<: *api
     hostname: api2
-    environment:
-      - DATABASE_HOST=db
-      - PORT=3333
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=password
-    networks:
-      - backend
-      - payment-processor
-    depends_on:
-      - db
 
   db:
     image: postgres:17-alpine
@@ -40,6 +35,11 @@ services:
       - backend
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: "255MB"
 
   load-balancer:
     image: nginx:1.25.2-alpine
@@ -52,6 +52,11 @@ services:
     depends_on:
       - api1
       - api2
+    deploy:
+      resources:
+        limits:
+          cpus: "0.15"
+          memory: "15MB"
 
 networks:
   backend:
