@@ -34,7 +34,7 @@ export async function addPaymentToQueue(payment: Payment): Promise<void> {
 
   const paymentMessage: string = JSON.stringify({
     correlationId: payment.correlationId,
-    amountInCents: payment.amount * 100,
+    amountInCents: Math.round(payment.amount * 100),
     receivedAt: new Date()
   } as PaymentData);
 

@@ -7,14 +7,14 @@ import database from './database';
 async function processAndSavePayment(paymentData: PaymentData): Promise<boolean> {
   try {
     const response = await processPayment(paymentData);
-
+    console.log(`Payment processed:`, response);
     if (!response) {
       console.error(`Failed to process payment ${paymentData.correlationId}`);
       return false;
     }
 
     await saveProcessedPayment(paymentData, response.processor);
-
+    console.log(`Payment ${paymentData.correlationId} saved successfully.`);
     return true;
   } catch (error) {
 
@@ -51,7 +51,7 @@ async function processPayment(paymentData: PaymentData) {
   const body = {
     correlationId: paymentData.correlationId,
     amount: paymentData.amountInCents / 100,
-    requestedAt: paymentData.receivedAt.toISOString()
+    requestedAt: new Date(paymentData.receivedAt).toISOString()
   }
 
   try {
