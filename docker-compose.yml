@@ -12,6 +12,7 @@ services:
       - payment-processor
     depends_on:
       - db
+      - rabbitmq
     deploy:
       resources:
         limits:
@@ -57,6 +58,18 @@ services:
         limits:
           cpus: "0.15"
           memory: "15MB"
+
+  rabbitmq:
+    image: rabbitmq:3.13-alpine
+    hostname: rabbitmq
+    networks:
+      - backend
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=password
+    ports:
+      - "5672:5672"
+      - "15672:15672"
 
 networks:
   backend:
