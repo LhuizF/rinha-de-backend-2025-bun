@@ -1,5 +1,5 @@
 import amqp, { Channel } from 'amqplib';
-import { Payment } from './types';
+import { Payment, PaymentData } from './types';
 
 const RABBITMQ_URL = 'amqp://admin:password@rabbitmq:5672';
 const QUEUE_NAME = 'PAYMENT_PROCESSING_QUEUE'
@@ -34,9 +34,9 @@ export async function addPaymentToQueue(payment: Payment): Promise<void> {
 
   const paymentMessage: string = JSON.stringify({
     correlationId: payment.correlationId,
-    amount: payment.amount * 100,
+    amountInCents: payment.amount * 100,
     receivedAt: new Date()
-  });
+  } as PaymentData);
 
 
   channel.sendToQueue(queueName, Buffer.from(paymentMessage), {

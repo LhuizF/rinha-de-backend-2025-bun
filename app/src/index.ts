@@ -2,11 +2,7 @@ import { Elysia, t } from "elysia";
 import { addPaymentToQueue } from "./queue";
 import { startWorker } from "./worker";
 
-const PORT = process.env.PORT || 3333;
-
-const app = new Elysia().listen(PORT, () => {
-  startWorker();
-})
+const app = new Elysia()
 
 app.post('/payments', (ctx) => {
   const { correlationId, amount } = ctx.body;
@@ -32,12 +28,12 @@ app.post('/payments', (ctx) => {
   })
 })
 
-console.log(
-  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
-);
+const PORT = process.env.PORT || 3333;
+app.listen(PORT, () => {
+  console.log(
+    `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
+  );
+  startWorker();
+});
 
 
-interface Payment {
-  correlationId: string;
-  amountInCents: number;
-}
