@@ -11,13 +11,15 @@ services:
       - backend
       - payment-processor
     depends_on:
-      - db
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
+      db:
+        condition: service_started
     deploy:
       resources:
         limits:
-          cpus: "0.55"
-          memory: "40MB"
+          cpus: "0.40"
+          memory: "55MB"
 
   api2:
     <<: *api
@@ -39,8 +41,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: "255MB"
+          cpus: "0.30"
+          memory: "130MB"
 
   load-balancer:
     image: nginx:1.25.2-alpine
@@ -70,6 +72,16 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "0.20"
+          memory: "95MB"
 
 networks:
   backend:
