@@ -4,7 +4,7 @@ import { Pool } from "pg";
 import { PaymentData, ProcessedPayment } from "../types";
 
 export class StoreService {
-
+  private cont = 0
   constructor(private readonly database: Pool) {
     if (!database) {
       throw new Error("Database connection is not set");
@@ -25,7 +25,6 @@ export class StoreService {
 
     try {
       await this.database.query(query, values);
-      console.log(`[StoreService] Payment saved successfully: ${paymentData.correlationId}`);
     } catch (error) {
       console.error("Error saving payment data:", error);
       throw error;
@@ -57,6 +56,8 @@ export class StoreService {
 
     try {
       const result = await this.database.query(query, params);
+      this.cont++;
+      console.log(`Query executed ${this.cont} times`);
       return result.rows;
     } catch (error) {
       console.error("Error fetching payments:", error);

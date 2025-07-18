@@ -1,6 +1,8 @@
-import { PaymentData } from "../types";
+import { PaymentData, ProcessorType } from "../types";
 import { fetch } from "undici";
 import { storeService, StoreService } from "./StoreService";
+import { healthService } from "./HealthService";
+
 class PaymentService {
   private readonly processorDefaultUrl: string;
   private readonly processorFallbackUrl: string;
@@ -19,47 +21,61 @@ class PaymentService {
     this.processorFallbackUrl = processorFallbackUrl;
   }
 
+  async tryProcessPayment(payment: PaymentData): Promise<boolean> {
+    const processorToUse = await healthService.getProcessor();
 
-  async processPayment(payment: PaymentData,): Promise<string> {
-    return new Promise((resolve) => {
-      this.tryProcessPayment(payment, resolve);
-    })
+    const processorMap = {
+      'default': this.processorDefaultUrl,
+      'fallback': this.processorFallbackUrl
+    }
+
+    const processorUrl = processorMap[processorToUse];
+
+    const isSuccess = await this.sendToProcessor(processorUrl, payment);
+
+    if (isSuccess) {
+      await this.savePayment(payment, processorToUse);
+
+      return true;
+    }
+
+    const newProcessor = processorToUse === 'default' ? 'fallback' : 'default';
+    const newProcessorUrl = processorMap[newProcessor];
+    const retrySuccess = await this.sendToProcessor(newProcessorUrl, payment);
+
+    if (retrySuccess) {
+      await this.savePayment(payment, newProcessor);
+      return true;
+    }
+
+    console.log(`[PaymentService] Failed to process payment ${payment.correlationId} on both processors.`);
+    return false;
   }
 
-  private async tryProcessPayment(payment: PaymentData, resolve: (processor: 'default' | 'fallback') => void): Promise<void> {
+  public async sendToProcessor(url: string, payment: PaymentData): Promise<boolean> {
     try {
-      await this.sendToProcessor(this.processorDefaultUrl, payment);
+      const response = await fetch(url + '/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payment)
+      });
 
-      resolve('default');
-    } catch (error) {
-      try {
-        await this.sendToProcessor(this.processorFallbackUrl, payment);
-
-        resolve('fallback');
-      } catch (error) {
-        setTimeout(() => this.tryProcessPayment(payment, resolve), 1000);
+      if (!response.ok) {
+        console.error('[PaymentService] Error', url, response.statusText);
+        return false;
       }
+
+      return true;
+    } catch (error) {
+      console.error(`[PaymentService] Error catch`, url, error);
+      return false;
     }
   }
 
-  private async sendToProcessor(url: string, payment: PaymentData): Promise<void> {
-    const response = await fetch(url + '/payments', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(payment)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to send payment to processor at ${url}`);
-    }
-
-    console.log(`[PaymentService] ${url} Success ${payment.correlationId}`);
-  }
-
-  public async savePayment(payment: PaymentData, processor: string): Promise<void> {
+  private async savePayment(payment: PaymentData, processor: ProcessorType): Promise<void> {
     await this.storeService.savePayment(payment, processor);
   }
 
@@ -72,7 +88,7 @@ class PaymentService {
     };
 
     for (const row of payments) {
-      const processor = row.processor as 'default' | 'fallback';
+      const processor = row.processor as ProcessorType
       if (summary[processor]) {
         summary[processor].totalRequests = parseInt(row.totalRequests, 10);
         summary[processor].totalAmount = parseFloat(row.totalAmount) / 100;

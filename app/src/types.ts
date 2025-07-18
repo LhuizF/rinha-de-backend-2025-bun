@@ -12,3 +12,5 @@ export interface PaymentData {
 export interface ProcessedPayment extends PaymentData {
   processor: string;
 }
+
+export type ProcessorType = 'default' | 'fallback';
