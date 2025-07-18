@@ -7,14 +7,16 @@ services:
       - PORT=3333
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=password
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_PORT=5432
+      - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
+      - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
     networks:
       - backend
       - payment-processor
     depends_on:
-      rabbitmq:
+      redis:
         condition: service_healthy
-      db:
-        condition: service_started
     deploy:
       resources:
         limits:
@@ -24,6 +26,28 @@ services:
   api2:
     <<: *api
     hostname: api2
+
+  redis:
+    image: redis:7.2-alpine
+    command: redis-server --save "" --appendonly no --maxclients 20000
+    networks:
+      - backend
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.15"
+          memory: "55MB"
+  # redisinsight:
+  #   image: redislabs/redisinsight:latest
+  #   ports:
+  #     - "5540:5540"
 
   db:
     image: postgres:17-alpine
@@ -41,8 +65,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.30"
-          memory: "130MB"
+          cpus: "0.40"
+          memory: "170MB"
 
   load-balancer:
     image: nginx:1.25.2-alpine
@@ -60,28 +84,6 @@ services:
         limits:
           cpus: "0.15"
           memory: "15MB"
-
-  rabbitmq:
-    image: rabbitmq:3.13-alpine
-    hostname: rabbitmq
-    networks:
-      - backend
-    environment:
-      - RABBITMQ_DEFAULT_USER=admin
-      - RABBITMQ_DEFAULT_PASS=password
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 5s
-      timeout: 10s
-      retries: 10
-    deploy:
-      resources:
-        limits:
-          cpus: "0.20"
-          memory: "95MB"
 
 networks:
   backend:

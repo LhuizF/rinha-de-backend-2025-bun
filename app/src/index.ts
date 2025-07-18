@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
-import { addPaymentToQueue } from "./queue";
+import { redisService } from "./services/RedisService";
 import { startWorker } from "./worker";
-import database from "./database";
+import { paymentService } from "./services/PaymentService";
 
 const app = new Elysia()
 
@@ -18,7 +18,7 @@ app.post('/payments', (ctx) => {
     return { error: 'amount is not valid.' }
   }
 
-  addPaymentToQueue({ correlationId, amount });
+  redisService.addToQueue(correlationId, amount);
 
   ctx.set.status = 202
   return { status: 'ok' }
@@ -33,7 +33,7 @@ app.get('/payments-summary', async (ctx) => {
   const { from, to } = ctx.query;
 
   try {
-    const summary = await getPaymentSummaryFromDB(from, to);
+    const summary = await paymentService.getPaymentsSummary(from, to);
 
     ctx.set.status = 200
     return summary;
@@ -45,62 +45,18 @@ app.get('/payments-summary', async (ctx) => {
   }
 });
 
-app.post('/purge-payments', async () => {
-  try {
-    await database.query('DELETE FROM processed_payments;');
-    return { status: 'ok' };
-  } catch (error) {
+app.post('/purge-payments', async (ctx) => {
 
-    return { error: 'Failed to purge payments.' }
-  }
+  await paymentService.purgePayments();
+
+  ctx.set.status = 200
+  return { status: 'ok' };
 });
-
 
 const PORT = process.env.PORT || 3333;
 app.listen(PORT, () => {
   console.log(
     `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
   );
-  startWorker();
+  startWorker()
 });
-
-async function getPaymentSummaryFromDB(from?: string, to?: string) {
-  let query = `
-        SELECT
-            processor,
-            COUNT(*) AS "totalRequests",
-            SUM(amount) AS "totalAmount"
-        FROM
-            processed_payments`
-
-  const params = [];
-  if (from && to) {
-    query += ' WHERE processed_at BETWEEN $1 AND $2'
-    params.push(from, to);
-  } else if (from) {
-    query += ' WHERE processed_at >= $1'
-    params.push(from);
-  } else if (to) {
-    query += ' WHERE processed_at <= $1'
-    params.push(to);
-  }
-
-  query += ' GROUP BY processor;';
-
-  const { rows } = await database.query(query, params);
-
-  const summary = {
-    default: { totalRequests: 0, totalAmount: 0 },
-    fallback: { totalRequests: 0, totalAmount: 0 }
-  };
-
-  for (const row of rows) {
-    const processor = row.processor as 'default' | 'fallback';
-    if (summary[processor]) {
-      summary[processor].totalRequests = parseInt(row.totalRequests, 10);
-      summary[processor].totalAmount = parseFloat(row.totalAmount) / 100;
-    }
-  }
-
-  return summary;
-}
