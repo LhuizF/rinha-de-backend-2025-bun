@@ -1,7 +1,7 @@
 CREATE TABLE processed_payments  (
     id SERIAL PRIMARY KEY,
     correlation_id UUID NOT NULL UNIQUE,
-    amountInCents BIGINT NOT NULL,
+    amountInCents INT NOT NULL,
     processor VARCHAR(10) NOT NULL,
     processed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );

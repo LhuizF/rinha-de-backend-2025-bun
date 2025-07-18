@@ -84,7 +84,6 @@ services:
         limits:
           cpus: "0.15"
           memory: "15MB"
-
 networks:
   backend:
     driver: bridge
