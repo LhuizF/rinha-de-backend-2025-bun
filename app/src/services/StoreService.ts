@@ -20,7 +20,7 @@ export class StoreService {
       paymentData.correlationId,
       Math.round(paymentData.amount * 100),
       processor,
-      paymentData.receivedAt
+      paymentData.requestedAt
     ];
 
     try {

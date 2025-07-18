@@ -6,7 +6,7 @@ export interface Payment {
 export interface PaymentData {
   correlationId: string;
   amount: number;
-  receivedAt: string;
+  requestedAt: string;
 }
 
 export interface ProcessedPayment extends PaymentData {

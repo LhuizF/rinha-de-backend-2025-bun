@@ -17,11 +17,11 @@ class RedisService {
   }
 
   async addToQueue(correlationId: string, amount: number): Promise<void> {
-    const receivedAt = new Date().toISOString();
-    const paymentData = {
+    const requestedAt = new Date().toISOString();
+    const paymentData: PaymentData = {
       correlationId,
       amount,
-      receivedAt
+      requestedAt
     }
 
     await this.redis.lpush(this.QUEUE_NAME, JSON.stringify(paymentData));
