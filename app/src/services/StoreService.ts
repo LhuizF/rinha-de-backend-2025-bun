@@ -56,8 +56,6 @@ export class StoreService {
 
     try {
       const result = await this.database.query(query, params);
-      this.cont++;
-      console.log(`Query executed ${this.cont} times`);
       return result.rows;
     } catch (error) {
       console.error("Error fetching payments:", error);

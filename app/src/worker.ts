@@ -1,4 +1,4 @@
-import { paymentService } from '../src/services/PaymentService';
+import { processPaymentService } from '../src/services/ProcessPaymentService';
 import Redis from "ioredis";
 
 const QUEUE_NAME = 'payment_queue';
@@ -19,12 +19,8 @@ export const startWorker = async () => {
 
       if (payment) {
         const paymentData = JSON.parse(payment[1]);
-        const isSuccess = await paymentService.tryProcessPayment(paymentData)
+        processPaymentService.processPayment(paymentData, true)
 
-        if (!isSuccess) {
-          await redis.lpush(QUEUE_NAME, JSON.stringify(paymentData));
-          console.log(`[Worker] Re-enqueued payment ${paymentData.correlationId}`);
-        }
       }
     } catch (error) {
       console.error('[Worker] Error processing payment:', error);

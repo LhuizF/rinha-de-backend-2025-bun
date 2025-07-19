@@ -1,9 +1,9 @@
-import { fetch } from "undici";
 import { ProcessorType } from "../types";
 
 interface ProcessorHealthResponse {
   failing: boolean;
   minResponseTime: number
+  lastCheck: number;
 }
 
 interface Cache {
@@ -17,16 +17,15 @@ class HealthService {
   private readonly defaultHealthUrl = `${process.env.PROCESSOR_DEFAULT_URL}/payments/service-health`;
   private readonly fallbackHealthUrl = `${process.env.PROCESSOR_FALLBACK_URL}/payments/service-health`;
 
-  private lastCheck: number = 0;
+  private contDefault: number = 0;
+  private contFallback: number = 0;
 
   private readonly CACHE_DURATION = 5000; // 5 seconds
 
   private cache: Cache = {
-    default: { failing: false, minResponseTime: -1 },
-    fallback: { failing: false, minResponseTime: -1 }
+    default: { failing: false, minResponseTime: 0, lastCheck: 0 },
+    fallback: { failing: false, minResponseTime: 0, lastCheck: 0 }
   };
-
-  private constructor() {}
 
   public static getInstance(): HealthService {
     if (!HealthService.instance) {
@@ -36,38 +35,56 @@ class HealthService {
   }
 
   public async getProcessor(): Promise<ProcessorType> {
-    const now = Date.now()
+    await Promise.all([
+      this.updateCache('default'),
+      this.updateCache('fallback')
+    ])
 
-    if (now - this.lastCheck > this.CACHE_DURATION) {
-      const [defaultResponse, fallback] = await Promise.all([
-        fetch(this.defaultHealthUrl)
-          .then((response) => response.json() as Promise<ProcessorHealthResponse>)
-          .catch(() => null),
-        fetch(this.fallbackHealthUrl)
-          .then((response) => response.json() as Promise<ProcessorHealthResponse>)
-          .catch(() => null)
-      ])
+    const def = this.cache.default;
+    const fb = this.cache.fallback;
 
-      if (defaultResponse) {
-        this.cache.default = defaultResponse
-      } else {
-        this.cache.default = { failing: true, minResponseTime: Infinity };
-      }
-
-      if (fallback) {
-        this.cache.fallback = fallback;
-      } else {
-        this.cache.fallback = { failing: true, minResponseTime: Infinity };
-      }
-
-      this.lastCheck = now;
-    }
-
-    if (!this.cache.default.failing && (this.cache.default.minResponseTime <= this.cache.fallback.minResponseTime || this.cache.fallback.failing)) {
+    if (!def.failing || def.minResponseTime <= fb.minResponseTime) {
       return 'default';
     }
 
     return 'fallback';
+  }
+
+  private async updateCache(processor: ProcessorType): Promise<void> {
+    const now = Date.now();
+
+    if (now - this.cache[processor].lastCheck < this.CACHE_DURATION) {
+      return
+    }
+
+    const processorUrl = processor === 'default' ? this.defaultHealthUrl : this.fallbackHealthUrl;
+
+    try {
+      const res = await fetch(processorUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const data = await res.json() as ProcessorHealthResponse;
+      if (processor === 'default') {
+        this.contDefault++
+        console.log(`Default processor check count: ${this.contDefault}`);
+      }
+
+      if (processor === 'fallback') {
+        this.contFallback++
+        console.log(`Fallback processor check count: ${this.contFallback}`);
+      }
+
+      this.cache[processor].failing = data.failing
+      this.cache[processor].minResponseTime = data.minResponseTime
+      this.cache[processor].lastCheck = now;
+    } catch (e) {
+      this.cache[processor].failing = true;
+      this.cache[processor].lastCheck = now;
+    }
   }
 }
 
