@@ -22,7 +22,7 @@ services:
       resources:
         limits:
           cpus: "0.40"
-          memory: "80MB"
+          memory: "90MB"
 
   api2:
     <<: *api
@@ -70,7 +70,7 @@ services:
       resources:
         limits:
           cpus: "0.40"
-          memory: "130MB"
+          memory: "110MB"
 
   load-balancer:
     image: nginx:1.25.2-alpine
