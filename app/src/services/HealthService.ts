@@ -68,15 +68,6 @@ class HealthService {
       })
 
       const data = await res.json() as ProcessorHealthResponse;
-      if (processor === 'default') {
-        this.contDefault++
-        console.log(`Default processor check count: ${this.contDefault}`);
-      }
-
-      if (processor === 'fallback') {
-        this.contFallback++
-        console.log(`Fallback processor check count: ${this.contFallback}`);
-      }
 
       this.cache[processor].failing = data.failing
       this.cache[processor].minResponseTime = data.minResponseTime
