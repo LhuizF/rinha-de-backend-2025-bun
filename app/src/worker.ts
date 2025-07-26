@@ -15,7 +15,7 @@ export const startWorker = async () => {
   while (true) {
 
     try {
-      const payment = await redis.brpop(QUEUE_NAME, 0);
+      const payment = await redis.brpop(QUEUE_NAME, 5);
 
       if (payment) {
         const paymentData = JSON.parse(payment[1]);

@@ -1,7 +1,7 @@
 import { PaymentData, ProcessorType } from "../types";
-// import { fetch } from "undici";
 import { storeService, StoreService } from "./StoreService";
 import { healthService } from "./HealthService";
+import { redisService } from './RedisService'
 
 class ProcessPaymentService {
   private readonly processorDefaultUrl = process.env.PROCESSOR_DEFAULT_URL || '';
@@ -54,7 +54,7 @@ class ProcessPaymentService {
 
   private async processPaymentWithHealth(payment: PaymentData): Promise<boolean> {
     const processorToUse = await healthService.getProcessor()
-    console.log(`[PaymentService] Using processor: ${processorToUse}`);
+
     const processorMap = {
       'default': this.processorDefaultUrl,
       'fallback': this.processorFallbackUrl
@@ -66,7 +66,6 @@ class ProcessPaymentService {
 
     if (isSuccess) {
       await this.savePayment(payment, processorToUse);
-
       return true;
     }
 
@@ -78,7 +77,8 @@ class ProcessPaymentService {
       this.savePayment(payment, newProcessor);
       return true;
     }
-
+    console.log('requeue')
+    redisService.addToQueue(payment.correlationId, payment.amount);
     return false;
   }
 
@@ -94,13 +94,11 @@ class ProcessPaymentService {
       });
 
       if (!response.ok) {
-        console.error('[PaymentService] Error', url, response.statusText);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error(`[PaymentService] Error catch`, url, error);
       return false;
     }
   }
