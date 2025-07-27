@@ -72,7 +72,7 @@ class HealthService {
       this.cache[processor].failing = data.failing
       this.cache[processor].minResponseTime = data.minResponseTime
       this.cache[processor].lastCheck = now;
-      console.log('[HealthService] Updated cache for', processor);
+      console.log('[HealthService] Updated cache for', processor, new Date().toISOString());
     } catch (e) {
       this.cache[processor].failing = true;
       this.cache[processor].lastCheck = now;

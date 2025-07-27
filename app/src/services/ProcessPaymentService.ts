@@ -77,8 +77,8 @@ class ProcessPaymentService {
       this.savePayment(payment, newProcessor);
       return true;
     }
-    console.log('requeue')
-    redisService.addToQueue(payment.correlationId, payment.amount);
+    // console.log('requeue')
+    // redisService.addToQueue(payment.correlationId, payment.amount);
     return false;
   }
 

@@ -1,7 +1,10 @@
 import { processPaymentService } from '../src/services/ProcessPaymentService';
 import Redis from "ioredis";
+import PQueue from 'p-queue';
 
 const QUEUE_NAME = 'payment_queue';
+
+const queue = new PQueue({ concurrency: process.env.QUEUE_CONCURRENCY ? parseInt(process.env.QUEUE_CONCURRENCY) : 10 });
 
 export const startWorker = async () => {
   console.log('starting worker');
@@ -15,11 +18,11 @@ export const startWorker = async () => {
   while (true) {
 
     try {
-      const payment = await redis.brpop(QUEUE_NAME, 5);
+      const payment = await redis.brpop(QUEUE_NAME, 0);
 
       if (payment) {
         const paymentData = JSON.parse(payment[1]);
-        processPaymentService.processPayment(paymentData, true)
+        queue.add(() => processPaymentService.processPayment(paymentData, true));
 
       }
     } catch (error) {
