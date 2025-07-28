@@ -3,10 +3,10 @@
   "version": "0.1.1",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun run --watch src/index.ts"
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run --optimize --max-connections=2000 src/index.ts"
   },
   "dependencies": {
-    "elysia": "latest",
     "ioredis": "^5.6.1",
     "p-queue": "^8.1.0",
     "pg": "^8.16.3"

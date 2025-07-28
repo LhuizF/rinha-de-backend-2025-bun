@@ -10,4 +10,4 @@ COPY . .
 
 EXPOSE 3333
 
-CMD ["bun", "run", "src/index.ts"]
+CMD ["bun", "run", "start"]
