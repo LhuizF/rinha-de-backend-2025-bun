@@ -3,11 +3,12 @@ import Redis from "ioredis";
 import PQueue from 'p-queue';
 
 const QUEUE_NAME = 'payment_queue';
+const QUEUE_CONCURRENCY = process.env.QUEUE_CONCURRENCY ? parseInt(process.env.QUEUE_CONCURRENCY) : 10;
 
-const queue = new PQueue({ concurrency: process.env.QUEUE_CONCURRENCY ? parseInt(process.env.QUEUE_CONCURRENCY) : 10 });
+const queue = new PQueue({ concurrency: QUEUE_CONCURRENCY });
 
-export const startWorker = async () => {
-  console.log('starting worker');
+const startWorker = async () => {
+  console.log('starting worker queue concurrency', QUEUE_CONCURRENCY);
 
   const redisUrl = process.env.REDIS_URL;
   if (!redisUrl) {
@@ -31,3 +32,4 @@ export const startWorker = async () => {
   }
 }
 
+startWorker()

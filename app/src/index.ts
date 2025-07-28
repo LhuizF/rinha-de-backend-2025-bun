@@ -1,5 +1,5 @@
 import { redisService } from "./services/RedisService";
-import { startWorker } from "./worker";
+// import { startWorker } from "./worker";
 import { paymentService } from "./services/PaymentService";
 
 const PORT = process.env.PORT || 3333;
@@ -7,7 +7,11 @@ const PORT = process.env.PORT || 3333;
 const server = Bun.serve({
   port: PORT,
   maxRequestBodySize: 1024,
+  hostname: "0.0.0.0",
   async fetch(req) {
+    if (req.method === "GET" && req.url.includes("/health")) {
+      return new Response(null, { status: 200 });
+    }
     if (req.method === "POST" && req.url.includes("/payments")) {
       const body = await req.text()
       const { amount, correlationId } = JSON.parse(body)
@@ -52,4 +56,4 @@ const server = Bun.serve({
 });
 
 console.log(`Happy happy happy: ${server.port}`)
-startWorker()
+// startWorker()
