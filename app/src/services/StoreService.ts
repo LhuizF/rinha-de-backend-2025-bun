@@ -4,10 +4,72 @@ import { Pool } from "pg";
 import { PaymentData, ProcessedPayment } from "../types";
 
 export class StoreService {
-  private cont = 0
+  private paymentQueue: ProcessedPayment[] = [];
+  private readonly BATCH_SIZE = 200
+  private readonly BATCH_INTERVAL_MS = 500;
+  private batchTimer: NodeJS.Timeout | null = null;
+
   constructor(private readonly database: Pool) {
     if (!database) {
       throw new Error("Database connection is not set");
+    }
+  }
+
+  async queuePayment(paymentData: PaymentData, processor: string): Promise<void> {
+    this.paymentQueue.push({ ...paymentData, processor });
+
+    if (this.paymentQueue.length >= this.BATCH_SIZE) {
+      this.processPaymentQueue();
+      return;
+    }
+
+    if (!this.batchTimer) {
+      this.batchTimer = setTimeout(() => {
+        this.processPaymentQueue()
+      }, this.BATCH_INTERVAL_MS);
+    }
+  }
+
+  private async processPaymentQueue(): Promise<void> {
+
+    if (this.batchTimer) {
+      clearTimeout(this.batchTimer)
+      this.batchTimer = null
+    }
+
+    if (this.paymentQueue.length === 0) {
+      return
+    }
+
+    const paymentsToProcess = [...this.paymentQueue]
+
+    const query = []
+    const values = []
+
+    for (let index = 0; index < paymentsToProcess.length; index++) {
+      const payment = paymentsToProcess[index];
+
+      query.push(`($${index * 4 + 1}, $${index * 4 + 2}, $${index * 4 + 3}, $${index * 4 + 4})`);
+
+      values.push(
+        payment.correlationId,
+        Math.round(payment.amount * 100),
+        payment.processor,
+        new Date().toISOString()
+      );
+    }
+
+    const insertQuery = `
+      INSERT INTO processed_payments (correlation_id, amountInCents, processor, processed_at)
+      VALUES ${query.join(", ")}
+    `
+
+    this.paymentQueue = []
+    try {
+      await this.database.query(insertQuery, values);
+      console.log(`[StoreService] ${new Date().toISOString()} : ${paymentsToProcess.length}`);
+    } catch (error) {
+      console.error(`Error`, error);
     }
   }
 
@@ -26,8 +88,8 @@ export class StoreService {
     try {
       await this.database.query(query, values);
     } catch (error) {
-      console.error("Error saving payment data:", error);
-      throw error;
+      console.error("Error saving payment:", error);
+      console.log('[Time]', new Date().toISOString());
     }
   }
 

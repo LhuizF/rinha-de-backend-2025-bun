@@ -104,7 +104,7 @@ class ProcessPaymentService {
   }
 
   private async savePayment(payment: PaymentData, processor: ProcessorType): Promise<void> {
-    await this.storeService.savePayment(payment, processor);
+    await this.storeService.queuePayment(payment, processor);
   }
 }
 
