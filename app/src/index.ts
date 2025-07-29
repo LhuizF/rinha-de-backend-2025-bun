@@ -28,7 +28,7 @@ const server = Bun.serve({
         const to = url.searchParams.get("to") || undefined
 
         const summary = await paymentService.getPaymentsSummary(from, to);
-
+        console.log("==================================")
         return new Response(JSON.stringify(summary), {
           status: 200,
           headers: {
