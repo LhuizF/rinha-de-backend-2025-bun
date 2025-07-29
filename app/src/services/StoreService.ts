@@ -6,13 +6,16 @@ import { PaymentData, ProcessedPayment } from "../types";
 export class StoreService {
   private paymentQueue: ProcessedPayment[] = [];
   private readonly BATCH_SIZE = 200
-  private readonly BATCH_INTERVAL_MS = 500;
+  private readonly BATCH_INTERVAL_MS = 200;
   private batchTimer: NodeJS.Timeout | null = null;
+  private isProcessing = false;
 
   constructor(private readonly database: Pool) {
     if (!database) {
       throw new Error("Database connection is not set");
     }
+
+    setInterval(() => this.processPaymentQueue(), this.BATCH_INTERVAL_MS);
   }
 
   async queuePayment(paymentData: PaymentData, processor: string): Promise<void> {
@@ -24,65 +27,70 @@ export class StoreService {
     }
 
     if (!this.batchTimer) {
-      this.batchTimer = setTimeout(() => {
-        this.processPaymentQueue()
-      }, this.BATCH_INTERVAL_MS);
+      this.batchTimer = setTimeout(() => this.processPaymentQueue(), this.BATCH_INTERVAL_MS);
     }
   }
 
   private async processPaymentQueue(): Promise<void> {
+    if (this.isProcessing) return;
+    this.isProcessing = true;
 
     if (this.batchTimer) {
-      clearTimeout(this.batchTimer)
-      this.batchTimer = null
+      clearTimeout(this.batchTimer);
+      this.batchTimer = null;
     }
 
     if (this.paymentQueue.length === 0) {
-      return
+      this.isProcessing = false;
+      return;
     }
 
-    const paymentsToProcess = [...this.paymentQueue]
+    const paymentsToProcess = this.paymentQueue.splice(0, this.BATCH_SIZE);
 
-    const query = []
-    const values = []
+    const query: string[] = [];
+    const values: any[] = [];
 
-    for (let index = 0; index < paymentsToProcess.length; index++) {
-      const payment = paymentsToProcess[index];
-
-      query.push(`($${index * 4 + 1}, $${index * 4 + 2}, $${index * 4 + 3}, $${index * 4 + 4})`);
-
+    for (let i = 0; i < paymentsToProcess.length; i++) {
+      const payment = paymentsToProcess[i];
+      query.push(`($${i * 4 + 1}, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4})`);
       values.push(
         payment.correlationId,
         Math.round(payment.amount * 100),
         payment.processor,
-        new Date().toISOString()
+        payment.requestedAt
       );
     }
 
     const insertQuery = `
       INSERT INTO processed_payments (correlation_id, amountInCents, processor, processed_at)
       VALUES ${query.join(", ")}
-    `
+    `;
 
-    this.paymentQueue = []
     try {
       await this.database.query(insertQuery, values);
-      console.log(`[StoreService] ${new Date().toISOString()} : ${paymentsToProcess.length}`);
+      console.log(`[StoreService] ${new Date().toISOString()} : Processed ${paymentsToProcess.length} payments`);
     } catch (error) {
-      console.error(`Error`, error);
+      console.error(`[StoreService] Failed to process payments`, error);
+      this.paymentQueue.unshift(...paymentsToProcess); // Reinsere em caso de erro
+    } finally {
+      this.isProcessing = false;
+
+      // 🔁 Agendar nova execução se ainda houver dados
+      if (this.paymentQueue.length > 0) {
+        this.batchTimer = setTimeout(() => this.processPaymentQueue(), this.BATCH_INTERVAL_MS);
+      }
     }
   }
 
   async savePayment(paymentData: PaymentData, processor: string): Promise<void> {
     const query = `
-      INSERT INTO processed_payments (correlation_id, amountInCents, processor, processed_at)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO processed_payments (correlation_id, amountInCents, processor)
+      VALUES ($1, $2, $3)
     `;
     const values = [
       paymentData.correlationId,
       Math.round(paymentData.amount * 100),
-      processor,
-      paymentData.requestedAt
+      processor
     ];
 
     try {
