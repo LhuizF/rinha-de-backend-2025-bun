@@ -24,7 +24,8 @@ jobs:
           npx semantic-release \
             --plugins @semantic-release/commit-analyzer \
                       @semantic-release/release-notes-generator \
-                      @semantic-release/github
+                      @semantic-release/github \
+                      @semantic-release/changelog
 
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
