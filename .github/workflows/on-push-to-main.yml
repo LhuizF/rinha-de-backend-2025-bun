@@ -22,10 +22,9 @@ jobs:
       - name: Run semantic-release manually
         run: |
           npx semantic-release \
-            --plugins='[
-              "@semantic-release/commit-analyzer",
-              "@semantic-release/release-notes-generator",
-              "@semantic-release/github"
-            ]'
+            --plugins @semantic-release/commit-analyzer \
+                      @semantic-release/release-notes-generator \
+                      @semantic-release/github
+
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
