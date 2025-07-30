@@ -5,9 +5,8 @@ import { PaymentData, ProcessedPayment } from "../types";
 
 export class StoreService {
   private paymentQueue: ProcessedPayment[] = [];
-  private readonly BATCH_SIZE = 200
-  private readonly BATCH_INTERVAL_MS = 200;
-  private batchTimer: NodeJS.Timeout | null = null;
+  private readonly BATCH_SIZE = 50
+  private readonly BATCH_INTERVAL_MS = 1;
   private isProcessing = false;
 
   constructor(private readonly database: Pool) {
@@ -22,23 +21,15 @@ export class StoreService {
     this.paymentQueue.push({ ...paymentData, processor });
 
     if (this.paymentQueue.length >= this.BATCH_SIZE) {
+      console.log('MAX BATCH SIZE REACHED, processing queue');
       this.processPaymentQueue();
       return;
-    }
-
-    if (!this.batchTimer) {
-      this.batchTimer = setTimeout(() => this.processPaymentQueue(), this.BATCH_INTERVAL_MS);
     }
   }
 
   private async processPaymentQueue(): Promise<void> {
     if (this.isProcessing) return;
     this.isProcessing = true;
-
-    if (this.batchTimer) {
-      clearTimeout(this.batchTimer);
-      this.batchTimer = null;
-    }
 
     if (this.paymentQueue.length === 0) {
       this.isProcessing = false;
@@ -68,17 +59,11 @@ export class StoreService {
 
     try {
       await this.database.query(insertQuery, values);
-      console.log(`[StoreService] ${new Date().toISOString()} : Processed ${paymentsToProcess.length} payments`);
     } catch (error) {
       console.error(`[StoreService] Failed to process payments`, error);
-      this.paymentQueue.unshift(...paymentsToProcess); // Reinsere em caso de erro
+      this.paymentQueue.unshift(...paymentsToProcess)
     } finally {
       this.isProcessing = false;
-
-      // 🔁 Agendar nova execução se ainda houver dados
-      if (this.paymentQueue.length > 0) {
-        this.batchTimer = setTimeout(() => this.processPaymentQueue(), this.BATCH_INTERVAL_MS);
-      }
     }
   }
 

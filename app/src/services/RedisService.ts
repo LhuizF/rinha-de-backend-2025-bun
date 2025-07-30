@@ -26,6 +26,10 @@ class RedisService {
 
     await this.redis.lpush(this.QUEUE_NAME, JSON.stringify(paymentData));
   }
+
+  requeue(paymentData: PaymentData): void {
+    this.redis.lpush(this.QUEUE_NAME, JSON.stringify(paymentData))
+  }
 }
 
 
