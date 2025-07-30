@@ -1,0 +1,31 @@
+name: On push to main
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  tag:
+    name: Tag Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run semantic-release manually
+        run: |
+          npx semantic-release \
+            --plugins='[
+              "@semantic-release/commit-analyzer",
+              "@semantic-release/release-notes-generator",
+              "@semantic-release/github"
+            ]'
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
