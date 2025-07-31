@@ -1,9 +1,12 @@
 import Redis from "ioredis";
-import { PaymentData } from "../types";
+import { PaymentData, ProcessorType } from "../types";
 
 class RedisService {
   private redis: Redis;
   private readonly QUEUE_NAME = 'payment_queue';
+
+  private readonly PAYMENT_INDEX = "payment:index";
+  private readonly PAYMENT_JSON = "payment:json:";
 
   constructor(redisUrl: string) {
     if (!redisUrl) {
@@ -30,8 +33,101 @@ class RedisService {
   requeue(paymentData: PaymentData): void {
     this.redis.lpush(this.QUEUE_NAME, JSON.stringify(paymentData))
   }
+
+
+  async savePayment(payment: PaymentData, processor: ProcessorType): Promise<void> {
+    const data: PaymentSaved = {
+      ...payment,
+      amountInCents: Math.round(payment.amount * 100),
+      processor
+    }
+
+    const key = `${this.PAYMENT_JSON}:${payment.correlationId}`
+    await this.redis.set(key, JSON.stringify(data))
+
+    const dateTime = new Date(payment.requestedAt).getTime()
+
+    await this.redis.zadd(this.PAYMENT_INDEX, dateTime, payment.correlationId)
+  }
+
+  async getPaymentsSummaryAsync(from?: string, to?: string): Promise<PaymentsSummary> {
+    const defaultSummary: SummaryDetails = {
+      totalRequests: 0,
+      totalAmount: 0
+    };
+    const fallbackSummary: SummaryDetails = {
+      totalRequests: 0,
+      totalAmount: 0
+    };
+
+    const fromDate = from ? new Date(from) : new Date(0);
+    const toDate = to ? new Date(to) : new Date();
+
+    const paymentIds = await this.redis.zrangebyscore(this.PAYMENT_INDEX, fromDate.getTime(), toDate.getTime());
+
+    if (paymentIds.length === 0) {
+      return {
+        default: defaultSummary,
+        fallback: fallbackSummary
+      };
+    }
+
+    const paymentKeys = paymentIds.map(id => `${this.PAYMENT_JSON}:${id}`)
+
+    const paymentsData = await this.redis.mget(paymentKeys)
+    for (const paymentData of paymentsData) {
+      if (paymentData) {
+        const parsedData = JSON.parse(paymentData) as PaymentSaved
+
+        if (parsedData.processor === 'default') {
+          defaultSummary.totalRequests += 1
+          defaultSummary.totalAmount += parsedData.amountInCents
+        } else
+          if (parsedData.processor === 'fallback') {
+            fallbackSummary.totalRequests += 1
+            fallbackSummary.totalAmount += parsedData.amountInCents
+          }
+      }
+    }
+
+    return {
+      default: {
+        totalRequests: defaultSummary.totalRequests,
+        totalAmount: defaultSummary.totalAmount / 100
+      },
+      fallback: {
+        totalRequests: fallbackSummary.totalRequests,
+        totalAmount: fallbackSummary.totalAmount / 100
+      }
+    }
+  }
+
+  public async cleanUpPayments(): Promise<void> {
+    const keys = await this.redis.keys(`${this.PAYMENT_JSON}:*`)
+    if (keys.length > 0) {
+      await this.redis.del(...keys)
+    }
+    await this.redis.del(this.PAYMENT_INDEX);
+    console.log('[RedisService] Cleaned up payments data.')
+  }
+}
+
+export const redisService = new RedisService(process.env.REDIS_URL || '');
+
+interface PaymentsSummary {
+  default: SummaryDetails;
+  fallback: SummaryDetails;
+}
+interface SummaryDetails {
+  totalRequests: number;
+  totalAmount: number;
 }
 
 
-export const redisService = new RedisService(process.env.REDIS_URL || '');
+interface PaymentSaved {
+  correlationId: string;
+  amountInCents: number;
+  requestedAt: string;
+  processor: ProcessorType;
+}
 

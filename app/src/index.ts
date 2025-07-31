@@ -1,5 +1,4 @@
 import { redisService } from "./services/RedisService";
-// import { startWorker } from "./worker";
 import { paymentService } from "./services/PaymentService";
 
 const PORT = process.env.PORT || 3333;
@@ -56,4 +55,3 @@ const server = Bun.serve({
 });
 
 console.log(`Happy happy happy: ${server.port}`)
-// startWorker()

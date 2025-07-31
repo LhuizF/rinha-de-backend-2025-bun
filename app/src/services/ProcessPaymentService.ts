@@ -1,14 +1,10 @@
 import { PaymentData, ProcessorType } from "../types";
-import { storeService, StoreService } from "./StoreService";
 import { healthService } from "./HealthService";
 import { redisService } from './RedisService'
 
 class ProcessPaymentService {
   private readonly processorDefaultUrl = process.env.PROCESSOR_DEFAULT_URL || '';
   private readonly processorFallbackUrl = process.env.PROCESSOR_FALLBACK_URL || '';
-
-  private readonly storeService: StoreService = storeService;
-
   /**
    * Processa o pagamento usando primeiro o Default e depois o Fallback, se ambos falharem, tenta novamente. (Recursividade)
    */
@@ -100,12 +96,12 @@ class ProcessPaymentService {
 
       return true;
     } catch (error) {
-      return false;
+      return false
     }
   }
 
   private async savePayment(payment: PaymentData, processor: ProcessorType): Promise<void> {
-    await this.storeService.queuePayment(payment, processor);
+    await redisService.savePayment(payment, processor);
   }
 }
 
