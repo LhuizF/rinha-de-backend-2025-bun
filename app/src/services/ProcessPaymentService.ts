@@ -5,47 +5,9 @@ import { redisService } from './RedisService'
 class ProcessPaymentService {
   private readonly processorDefaultUrl = process.env.PROCESSOR_DEFAULT_URL || '';
   private readonly processorFallbackUrl = process.env.PROCESSOR_FALLBACK_URL || '';
-  /**
-   * Processa o pagamento usando primeiro o Default e depois o Fallback, se ambos falharem, tenta novamente. (Recursividade)
-   */
-  public processPayment(payment: PaymentData): Promise<boolean>
-
-  /**
-   * Usa os endpoints de Health para decidir qual processador usar.
-   */
-  public processPayment(payment: PaymentData, useHealth: boolean): Promise<boolean>
 
   public async processPayment(payment: PaymentData, useHealth?: boolean): Promise<boolean> {
-    if (useHealth) {
-      return this.processPaymentWithHealth(payment);
-    }
-
-    return this.processPaymentWithRetry(payment);
-  }
-
-  private async processPaymentWithRetry(payment: PaymentData): Promise<boolean> {
-    const process = await new Promise<ProcessorType>((resolve) => {
-      this.tryProcessPayment(payment, resolve);
-    })
-
-    await this.savePayment(payment, process);
-    return true;
-  }
-
-  private async tryProcessPayment(payment: PaymentData, resolve: (processor: ProcessorType) => void): Promise<void> {
-    try {
-      await this.sendToProcessor(this.processorDefaultUrl, payment);
-
-      resolve('default');
-    } catch (error) {
-      try {
-        await this.sendToProcessor(this.processorFallbackUrl, payment);
-
-        resolve('fallback');
-      } catch (error) {
-        setTimeout(() => this.tryProcessPayment(payment, resolve), 500);
-      }
-    }
+    return this.processPaymentWithHealth(payment);
   }
 
   private async processPaymentWithHealth(payment: PaymentData): Promise<boolean> {
@@ -73,8 +35,6 @@ class ProcessPaymentService {
       this.savePayment(payment, newProcessor);
       return true;
     }
-
-    redisService.requeue(payment)
 
     return false;
   }

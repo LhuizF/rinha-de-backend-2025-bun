@@ -9,3 +9,7 @@ RUN apk add --no-cache curl
 RUN bun install --frozen-lockfile
 
 COPY . .
+
+EXPOSE 3333
+
+CMD ["bun", "run", "start"]

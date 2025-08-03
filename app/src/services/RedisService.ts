@@ -1,5 +1,6 @@
 import Redis from "ioredis";
 import { PaymentData, ProcessorType } from "../types";
+import { paymentQueue } from '../queue'
 
 class RedisService {
   private redis: Redis;
@@ -27,13 +28,14 @@ class RedisService {
       requestedAt
     }
 
-    await this.redis.lpush(this.QUEUE_NAME, JSON.stringify(paymentData));
+    await paymentQueue.add(this.QUEUE_NAME, paymentData, {
+      jobId: correlationId,
+      attempts: 3,
+      backoff: 5000,
+      removeOnComplete: true,
+      removeOnFail: false
+    })
   }
-
-  requeue(paymentData: PaymentData): void {
-    this.redis.lpush(this.QUEUE_NAME, JSON.stringify(paymentData))
-  }
-
 
   async savePayment(payment: PaymentData, processor: ProcessorType): Promise<void> {
     const data: PaymentSaved = {
@@ -109,6 +111,11 @@ class RedisService {
     }
     await this.redis.del(this.PAYMENT_INDEX);
     console.log('[RedisService] Cleaned up payments data.')
+  }
+
+  getRedis(): Redis {
+
+    return this.redis;
   }
 }
 
