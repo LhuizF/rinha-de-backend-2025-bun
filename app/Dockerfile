@@ -6,7 +6,7 @@ COPY package*.json bun.lock ./
 
 RUN apk add --no-cache curl
 
-RUN bun install --frozen-lockfile
+RUN bun install
 
 COPY . .
 

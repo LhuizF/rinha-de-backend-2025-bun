@@ -4,8 +4,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "bun run --watch src/index.ts",
-    "start": "bun run --optimize --max-connections=2000 src/index.ts",
-    "start:worker": "bun run src/worker.ts"
+    "start": "bun run --optimize-for-size --max-connections=2000 src/index.ts"
   },
   "dependencies": {
     "bullmq": "^5.56.9",

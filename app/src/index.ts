@@ -1,20 +1,20 @@
 import { redisService } from "./services/RedisService";
 import { paymentService } from "./services/PaymentService";
 import { startWorker } from "./worker";
+import { chmod } from "fs/promises";
 
 const PORT = process.env.PORT || 3333;
+const socketPath = process.env.SOCKET_PATH || "/tmp/sockets/api.sock";
 
-const server = Bun.serve({
-  port: PORT,
+Bun.serve({
+  unix: socketPath,
   maxRequestBodySize: 1024,
-  hostname: "0.0.0.0",
   async fetch(req) {
     if (req.method === "GET" && req.url.includes("/health")) {
       return new Response(null, { status: 200 });
     }
     if (req.method === "POST" && req.url.includes("/payments")) {
-      const body = await req.text()
-      const { amount, correlationId } = JSON.parse(body)
+      const { correlationId, amount } = await req.json();
 
       redisService.addToQueue(correlationId, amount)
 
@@ -55,5 +55,9 @@ const server = Bun.serve({
 
 });
 
-console.log(`Happy happy happy: ${server.port}`)
+console.log(`Happy happy happy: ${socketPath}`)
+
+chmod(socketPath, 0o777)
+  .then(() => console.log(`Socket permissions okay`))
+  .catch(err => console.error(`Socket permissions Failed: ${err.message}`));
 startWorker()
