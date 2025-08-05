@@ -53,13 +53,15 @@ class RedisService {
   }
 
   async getPaymentsSummaryAsync(from?: string, to?: string): Promise<PaymentsSummary> {
-    const defaultSummary: SummaryDetails = {
-      totalRequests: 0,
-      totalAmount: 0
-    };
-    const fallbackSummary: SummaryDetails = {
-      totalRequests: 0,
-      totalAmount: 0
+    const response = {
+      default: {
+        totalRequests: 0,
+        totalAmount: 0
+      },
+      fallback: {
+        totalRequests: 0,
+        totalAmount: 0
+      }
     };
 
     const fromDate = from ? new Date(from) : new Date(0);
@@ -68,40 +70,26 @@ class RedisService {
     const paymentIds = await this.redis.zrangebyscore(this.PAYMENT_INDEX, fromDate.getTime(), toDate.getTime());
 
     if (paymentIds.length === 0) {
-      return {
-        default: defaultSummary,
-        fallback: fallbackSummary
-      };
+      return response
     }
 
     const paymentKeys = paymentIds.map(id => `${this.PAYMENT_JSON}:${id}`)
 
     const paymentsData = await this.redis.mget(paymentKeys)
-    for (const paymentData of paymentsData) {
-      if (paymentData) {
-        const parsedData = JSON.parse(paymentData) as PaymentSaved
+    for (let i = 0; i < paymentsData.length; i++) {
+      const paymentData = paymentsData[i];
+      if (!paymentData) continue
 
-        if (parsedData.processor === 'default') {
-          defaultSummary.totalRequests += 1
-          defaultSummary.totalAmount += parsedData.amountInCents
-        } else
-          if (parsedData.processor === 'fallback') {
-            fallbackSummary.totalRequests += 1
-            fallbackSummary.totalAmount += parsedData.amountInCents
-          }
-      }
+      const { processor, amountInCents } = JSON.parse(paymentData) as PaymentSaved;
+
+      const responseProcessor = response[processor]
+      responseProcessor.totalRequests++
+      const totalAmount = parseFloat((responseProcessor.totalAmount + amountInCents / 100).toFixed(2))
+
+      responseProcessor.totalAmount = totalAmount
     }
 
-    return {
-      default: {
-        totalRequests: defaultSummary.totalRequests,
-        totalAmount: defaultSummary.totalAmount / 100
-      },
-      fallback: {
-        totalRequests: fallbackSummary.totalRequests,
-        totalAmount: fallbackSummary.totalAmount / 100
-      }
-    }
+    return response
   }
 
   public async cleanUpPayments(): Promise<void> {
@@ -129,7 +117,6 @@ interface SummaryDetails {
   totalRequests: number;
   totalAmount: number;
 }
-
 
 interface PaymentSaved {
   correlationId: string;
