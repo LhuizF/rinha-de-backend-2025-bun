@@ -48,10 +48,10 @@ Para executar os testes local no projeto da rinha, entre na pasta rinha-test e r
   **Bun** foi utilizado como o runtime JavaScript para executar o backend, que foi desenvolvido em **TypeScript**.
 
 - **Armazenamento**:
-  **PostgreSQL** atua como o banco de dados principal, responsável pela persistência dos pagamentos já processados.
+  **Redis** é utilizado como armazenamento para pagamentos recebidos, salvando os dados e indexando-os cronologicamente em um sorted set para facilitar a recuperação ordenada por data de requisição.
 
 - **Fila**:
-  **Redis** é utilizado como uma fila para desacoplar a recepção de pagamentos da API do processamento assíncrono realizado pelo worker.
+  **BullMQ** é utilizado, em conjunto com o Redis, para gerenciar filas de processamento, desacoplando a recepção de pagamentos da API do processamento assíncrono executado pelo worker.
 
 - **Balanceador**:
   **Nginx** funciona como um load balancer como o ponto de entrada único da aplicação e distribuindo as requisições entre as instâncias da API.
