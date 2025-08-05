@@ -46,6 +46,7 @@ jobs:
         run: |
           git fetch --tags
           TAG=$(git describe --tags --abbrev=0)
+          TAG="${TAG#v}"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       - name: Login Docker Hub
