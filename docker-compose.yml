@@ -1,10 +1,9 @@
 services:
   api1: &api
-    build: ./app
+    build: .
     hostname: api1
     container_name: api1
     environment:
-      - PORT=3333
       - REDIS_URL=redis://redis:6379
       - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
       - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
@@ -29,7 +28,6 @@ services:
     hostname: api2
     container_name: api2
     environment:
-      - PORT=3333
       - REDIS_URL=redis://redis:6379
       - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
       - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080

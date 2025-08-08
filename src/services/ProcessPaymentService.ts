@@ -1,4 +1,4 @@
-import { PaymentData, ProcessorType } from "../types";
+import type { PaymentData, ProcessorType } from "../types";
 import { healthService } from "./HealthService";
 import { redisService } from './RedisService'
 
