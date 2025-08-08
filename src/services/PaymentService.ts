@@ -1,8 +1,8 @@
 import { redisService } from './RedisService'
+import type { PaymentsSummary } from '../types'
 
 class PaymentService {
-
-  public async getPaymentsSummary(from?: string, to?: string): Promise<any> {
+  public async getPaymentsSummary(from?: string, to?: string): Promise<PaymentsSummary> {
     return redisService.getPaymentsSummaryAsync(from, to);
   }
 

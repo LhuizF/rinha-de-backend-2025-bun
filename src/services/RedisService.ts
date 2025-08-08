@@ -1,5 +1,5 @@
 import Redis from "ioredis";
-import type { PaymentData, ProcessorType } from "../types";
+import type { PaymentData, ProcessorType, PaymentJob, PaymentsSummary } from "../types";
 import { paymentQueue } from '../queue'
 
 class RedisService {
@@ -53,11 +53,11 @@ class RedisService {
   }
 
   async getPaymentsSummaryAsync(from?: string, to?: string): Promise<PaymentsSummary> {
-    const defaultSummary: SummaryDetails = {
+    const defaultSummary = {
       totalRequests: 0,
       totalAmount: 0
     };
-    const fallbackSummary: SummaryDetails = {
+    const fallbackSummary = {
       totalRequests: 0,
       totalAmount: 0
     };
@@ -114,22 +114,18 @@ class RedisService {
   }
 
   getRedis(): Redis {
-
     return this.redis;
+  }
+
+  addBatchToQueue(payments: PaymentJob[]): void {
+
+    if (payments.length > 0) {
+      void paymentQueue.addBulk(payments);
+    }
   }
 }
 
 export const redisService = new RedisService(process.env.REDIS_URL || '');
-
-interface PaymentsSummary {
-  default: SummaryDetails;
-  fallback: SummaryDetails;
-}
-interface SummaryDetails {
-  totalRequests: number;
-  totalAmount: number;
-}
-
 
 interface PaymentSaved {
   correlationId: string;
@@ -137,4 +133,3 @@ interface PaymentSaved {
   requestedAt: string;
   processor: ProcessorType;
 }
-

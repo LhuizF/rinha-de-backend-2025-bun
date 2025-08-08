@@ -1,10 +1,10 @@
-import { redisService } from "../services/RedisService";
+import { inMemoryService } from "../services/InMemoryService";
 import type { Payment } from "../types";
 
 export async function paymentsController(req: Request) {
-  const { correlationId, amount } = await req.json() as Payment;
+  const payment = await req.json() as Payment;
 
-  redisService.addToQueue(correlationId, amount)
+  inMemoryService.add(payment);
 
   return new Response(null, { status: 202 });
 }
