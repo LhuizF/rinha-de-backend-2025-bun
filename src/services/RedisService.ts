@@ -1,5 +1,5 @@
 import Redis from "ioredis";
-import { PaymentData, ProcessorType } from "../types";
+import type { PaymentData, ProcessorType } from "../types";
 import { paymentQueue } from '../queue'
 
 class RedisService {
@@ -20,7 +20,7 @@ class RedisService {
     });
   }
 
-  async addToQueue(correlationId: string, amount: number): Promise<void> {
+  addToQueue(correlationId: string, amount: number): void {
     const requestedAt = new Date().toISOString();
     const paymentData: PaymentData = {
       correlationId,
@@ -28,7 +28,7 @@ class RedisService {
       requestedAt
     }
 
-    await paymentQueue.add(this.QUEUE_NAME, paymentData, {
+    void paymentQueue.add(this.QUEUE_NAME, paymentData, {
       jobId: correlationId,
       attempts: 3,
       backoff: 5000,

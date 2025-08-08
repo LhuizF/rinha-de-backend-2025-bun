@@ -1,4 +1,4 @@
-import { ProcessorType } from "../types";
+import type { ProcessorType } from "../types";
 
 interface ProcessorHealthResponse {
   failing: boolean;

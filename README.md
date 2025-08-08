@@ -3,8 +3,8 @@
 Projeto desenvolvido para a [Rinha de backend 2025](https://github.com/zanfranceschi/rinha-de-backend-2025)
 
 - **Linguagem:** Bun e typescript
-- **Armazenamento:**: PostgreSQL
-- **Fila:** Redis
+- **Armazenamento:**: Redis
+- **Fila:** bullmq
 - **Balanceador:** Nginx
 - **Orquestração:** Docker Compose
 
