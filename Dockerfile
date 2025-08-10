@@ -11,7 +11,7 @@ COPY . .
 RUN bun build src/index.ts --outdir dist --target bun --minify
 
 
-FROM oven/bun:1.0-alpine
+FROM oven/bun
 
 WORKDIR /app
 

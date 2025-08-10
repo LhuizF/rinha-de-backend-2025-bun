@@ -4,7 +4,7 @@ import { redisService } from './services/RedisService';
 
 const redis = redisService.getRedis();
 
-const concurrency = process.env.QUEUE_CONCURRENCY ? parseInt(process.env.QUEUE_CONCURRENCY) : 10;
+const concurrency = 20
 
 export const startWorker = async () => {
   console.log('Starting worker...');

@@ -1,13 +1,13 @@
 import { redisService } from './RedisService';
 import type { Payment, PaymentJob } from '../types';
 
-
 class InMemoryService {
   private queue: PaymentJob[] = [];
-  private readonly FLUSH_INTERVAL_MS = 100;
-  private readonly BATCH_SIZE = 500;
+  private readonly FLUSH_INTERVAL_MS = 50;
+  private readonly BATCH_SIZE = 350;
 
   constructor() {
+    // console.log('InMemoryService initialized', this.BATCH_SIZE);
     this.startFlusher()
   }
 
