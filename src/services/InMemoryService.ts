@@ -3,7 +3,7 @@ import type { Payment } from '../types';
 
 class InMemoryService {
   private queue: Payment[] = [];
-  private readonly FLUSH_INTERVAL_MS = 200;
+  private readonly FLUSH_INTERVAL_MS = 500;
   private readonly BATCH_SIZE = 500;
 
   constructor() {

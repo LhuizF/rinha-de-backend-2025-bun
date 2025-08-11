@@ -32,5 +32,5 @@ export function startServer(socketPath: string) {
     }
   })
 
-  console.log(`Happy happy happy: ${socketPath}`)
+  console.log(`Happy happy happy: ${socketPath} 1.6.0`)
 }

@@ -17,10 +17,7 @@ class HealthService {
   private readonly defaultHealthUrl = `${process.env.PROCESSOR_DEFAULT_URL}/payments/service-health`;
   private readonly fallbackHealthUrl = `${process.env.PROCESSOR_FALLBACK_URL}/payments/service-health`;
 
-  private contDefault: number = 0;
-  private contFallback: number = 0;
-
-  private readonly CACHE_DURATION = 5000; // 5 seconds
+  private readonly CACHE_DURATION = 5000;
 
   private cache: Cache = {
     default: { failing: false, minResponseTime: 0, lastCheck: 0 },
