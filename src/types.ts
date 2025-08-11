@@ -17,7 +17,7 @@ export type ProcessorType = 'default' | 'fallback';
 
 export interface PaymentJob {
   name: string;
-  data: PaymentData;
+  data: Payment;
   opts: {
     jobId: string;
     attempts: number;

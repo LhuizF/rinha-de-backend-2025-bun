@@ -1,4 +1,4 @@
-import type { PaymentData, ProcessorType } from "../types";
+import type { Payment, PaymentData, ProcessorType } from "../types";
 import { healthService } from "./HealthService";
 import { redisService } from './RedisService'
 
@@ -6,11 +6,7 @@ class ProcessPaymentService {
   private readonly processorDefaultUrl = process.env.PROCESSOR_DEFAULT_URL || '';
   private readonly processorFallbackUrl = process.env.PROCESSOR_FALLBACK_URL || '';
 
-  public async processPayment(payment: PaymentData, useHealth?: boolean): Promise<boolean> {
-    return this.processPaymentWithHealth(payment);
-  }
-
-  private async processPaymentWithHealth(payment: PaymentData): Promise<boolean> {
+  public async processPayment(payment: Payment): Promise<boolean> {
     const processorToUse = await healthService.getProcessor()
 
     const processorMap = {
@@ -20,19 +16,25 @@ class ProcessPaymentService {
 
     const processorUrl = processorMap[processorToUse];
 
-    const isSuccess = await this.sendToProcessor(processorUrl, payment);
+    const paymentData: PaymentData = {
+      correlationId: payment.correlationId,
+      amount: payment.amount,
+      requestedAt: new Date().toISOString()
+    };
+
+    const isSuccess = await this.sendToProcessor(processorUrl, paymentData);
 
     if (isSuccess) {
-      await this.savePayment(payment, processorToUse);
+      await this.savePayment(paymentData, processorToUse);
       return true;
     }
 
     const newProcessor = processorToUse === 'default' ? 'fallback' : 'default';
     const newProcessorUrl = processorMap[newProcessor];
-    const retrySuccess = await this.sendToProcessor(newProcessorUrl, payment);
+    const retrySuccess = await this.sendToProcessor(newProcessorUrl, paymentData);
 
     if (retrySuccess) {
-      this.savePayment(payment, newProcessor);
+      this.savePayment(paymentData, newProcessor);
       return true;
     }
 

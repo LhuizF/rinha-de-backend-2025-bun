@@ -1,5 +1,5 @@
 import Redis from "ioredis";
-import type { PaymentData, ProcessorType, PaymentJob, PaymentsSummary } from "../types";
+import type { PaymentData, ProcessorType, PaymentJob, PaymentsSummary, Payment } from "../types";
 import { paymentQueue } from '../queue'
 
 class RedisService {
@@ -117,10 +117,21 @@ class RedisService {
     return this.redis;
   }
 
-  addBatchToQueue(payments: PaymentJob[]): void {
+  addBatchToQueue(payments: Payment[]): void {
+    const paymentsJob = payments.map(p => ({
+      name: 'payment',
+      data: p,
+      opts: {
+        jobId: p.correlationId,
+        attempts: 3,
+        backoff: 5000,
+        removeOnComplete: true,
+        removeOnFail: false
+      }
+    }));
 
-    if (payments.length > 0) {
-      void paymentQueue.addBulk(payments);
+    if (paymentsJob.length > 0) {
+      void paymentQueue.addBulk(paymentsJob);
     }
   }
 }

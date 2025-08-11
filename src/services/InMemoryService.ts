@@ -1,29 +1,18 @@
 import { redisService } from './RedisService';
-import type { Payment, PaymentJob } from '../types';
+import type { Payment } from '../types';
 
 class InMemoryService {
-  private queue: PaymentJob[] = [];
-  private readonly FLUSH_INTERVAL_MS = 50;
-  private readonly BATCH_SIZE = 350;
+  private queue: Payment[] = [];
+  private readonly FLUSH_INTERVAL_MS = 200;
+  private readonly BATCH_SIZE = 500;
 
   constructor() {
-    // console.log('InMemoryService initialized', this.BATCH_SIZE);
+    console.log('InMemoryService initialized', this.FLUSH_INTERVAL_MS, this.BATCH_SIZE);
     this.startFlusher()
   }
 
   public add(payment: Payment) {
-    const requestedAt = new Date().toISOString();
-    this.queue.push({
-      name: 'payment',
-      data: { ...payment, requestedAt },
-      opts: {
-        jobId: payment.correlationId,
-        attempts: 3,
-        backoff: 5000,
-        removeOnComplete: true,
-        removeOnFail: false
-      }
-    });
+    this.queue.push(payment);
   }
 
   private startFlusher() {
