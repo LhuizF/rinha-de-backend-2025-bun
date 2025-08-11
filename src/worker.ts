@@ -1,8 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import { processPaymentService } from './services/ProcessPaymentService';
-import { redisService } from './services/RedisService';
-
-const redis = redisService.getRedis();
+import Redis from 'ioredis';
 
 const concurrency = 20
 
@@ -21,11 +19,9 @@ export const startWorker = async () => {
       throw err;
     }
   }, {
-    connection: {
-      host: redis.options.host,
-      port: redis.options.port,
+    connection: new Redis(process.env.REDIS_URL!, {
       maxRetriesPerRequest: null,
-    },
+    }),
     concurrency: concurrency,
   })
 }
