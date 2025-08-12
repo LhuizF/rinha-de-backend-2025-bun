@@ -98,3 +98,4 @@ networks:
 
 volumes:
   sockets:
+    name: sockets_volume
