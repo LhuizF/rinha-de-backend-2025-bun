@@ -1,5 +1,4 @@
 import type { Payment, PaymentData, ProcessorType } from "../types";
-import { healthService } from "./HealthService";
 import { redisService } from './RedisService'
 
 class ProcessPaymentService {
@@ -7,8 +6,7 @@ class ProcessPaymentService {
   private readonly processorFallbackUrl = process.env.PROCESSOR_FALLBACK_URL || '';
 
   public async processPayment(payment: Payment): Promise<boolean> {
-    const processorToUse = await healthService.getProcessor()
-
+    const processorToUse = await redisService.getCurrentProcessor();
     const processorMap = {
       'default': this.processorDefaultUrl,
       'fallback': this.processorFallbackUrl

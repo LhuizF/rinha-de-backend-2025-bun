@@ -8,6 +8,7 @@ class RedisService {
 
   private readonly PAYMENT_INDEX = "payment:index";
   private readonly PAYMENT_JSON = "payment:json:";
+  private readonly PROCESSOR_KEY = "processor:";
 
   constructor(redisUrl: string) {
     if (!redisUrl) {
@@ -134,6 +135,17 @@ class RedisService {
       void paymentQueue.addBulk(paymentsJob);
     }
   }
+
+  public setCurrentProcessor(processor: ProcessorType): void {
+    this.redis.set(this.PROCESSOR_KEY, processor);
+  }
+
+  public async getCurrentProcessor(): Promise<ProcessorType> {
+    const processor = await this.redis.get(this.PROCESSOR_KEY) as ProcessorType;
+    // console.log('redis current processor:', processor ?? 'default Papai');
+    return processor ?? 'default';
+  }
+
 }
 
 export const redisService = new RedisService(process.env.REDIS_URL || '');

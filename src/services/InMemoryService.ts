@@ -7,7 +7,6 @@ class InMemoryService {
   private readonly BATCH_SIZE = 500;
 
   constructor() {
-    console.log('InMemoryService initialized', this.FLUSH_INTERVAL_MS, this.BATCH_SIZE);
     this.startFlusher()
   }
 

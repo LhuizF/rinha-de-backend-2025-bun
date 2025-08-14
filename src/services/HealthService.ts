@@ -1,4 +1,5 @@
 import type { ProcessorType } from "../types";
+import { redisService } from './RedisService'
 
 interface ProcessorHealthResponse {
   failing: boolean;
@@ -24,6 +25,12 @@ class HealthService {
     fallback: { failing: false, minResponseTime: 0, lastCheck: 0 }
   };
 
+  private intervalId?: NodeJS.Timeout;
+
+  constructor() {
+    this.update()
+  }
+
   public static getInstance(): HealthService {
     if (!HealthService.instance) {
       HealthService.instance = new HealthService();
@@ -31,20 +38,45 @@ class HealthService {
     return HealthService.instance;
   }
 
-  public async getProcessor(): Promise<ProcessorType> {
-    await Promise.all([
-      this.updateCache('default'),
-      this.updateCache('fallback')
-    ])
-
-    const def = this.cache.default;
-    const fb = this.cache.fallback;
-
-    if (!def.failing || def.minResponseTime <= fb.minResponseTime) {
-      return 'default';
+  public start() {
+    if (this.intervalId) {
+      return;
     }
 
-    return 'fallback';
+    console.log("[HealthService] Start");
+    this.update();
+    this.intervalId = setInterval(() => this.update(), this.CACHE_DURATION);
+  }
+
+  private async update() {
+    await Promise.all([
+      this.updateCache("default"),
+      this.updateCache("fallback")
+    ]);
+
+    this.updateCurrentProcessor();
+  }
+
+  private getProcessor(): ProcessorType {
+    const def = this.cache.default;
+    const fb = this.cache.fallback;
+    const maxExtraLatency = 500;
+
+    if (!def.failing) {
+      if (
+        fb.minResponseTime + maxExtraLatency < def.minResponseTime &&
+        !fb.failing
+      ) {
+        return 'fallback';
+      }
+      return 'default'
+    }
+
+    if (!fb.failing) {
+      return 'fallback';
+    }
+
+    return 'default';
   }
 
   private async updateCache(processor: ProcessorType): Promise<void> {
@@ -74,6 +106,11 @@ class HealthService {
       this.cache[processor].failing = true;
       this.cache[processor].lastCheck = now;
     }
+  }
+
+  private updateCurrentProcessor() {
+    const processor = this.getProcessor();
+    redisService.setCurrentProcessor(processor);
   }
 }
 
