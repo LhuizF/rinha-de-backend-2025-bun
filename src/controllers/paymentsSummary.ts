@@ -1,4 +1,4 @@
-import { paymentService } from "../services/PaymentService";
+import { redisService } from "../services/RedisService";
 
 export async function paymentsSummaryController(req: Request) {
   try {
@@ -6,7 +6,7 @@ export async function paymentsSummaryController(req: Request) {
     const from = url.searchParams.get("from") || undefined
     const to = url.searchParams.get("to") || undefined
 
-    const summary = await paymentService.getPaymentsSummary(from, to);
+    const summary = await redisService.getPaymentsSummaryAsync(from, to);
 
     return new Response(JSON.stringify(summary), {
       status: 200,
