@@ -10,6 +10,6 @@ startServer(socketPath)
 chmod(socketPath, 0o777)
   .catch(err => console.error(`Socket permissions Failed: ${err.message}`));
 startWorker()
-if (socketPath === "/tmp/sockets/api1.sock") {
-  healthService.start()
-}
+// if (socketPath === "/tmp/sockets/api1.sock") {
+//   healthService.start()
+// }

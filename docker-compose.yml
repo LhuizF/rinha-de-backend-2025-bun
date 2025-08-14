@@ -60,7 +60,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.45"
+          cpus: "0.40"
           memory: "65MB"
 
   # redisinsight:
@@ -86,7 +86,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.05"
+          cpus: "0.10"
           memory: "15MB"
 
 networks:
